@@ -1,0 +1,105 @@
+// DEFINES AND INCLUDES-------------------------------------------------------|
+
+#define STM32F051 //COMPULSORY
+#include "stm32f0xx.h" //COMPULSORY
+#include "lcd_stm32f0.h"
+
+// If using UCT STM32 Development board, write #define UCT_BOARD below
+#define UCT_BOARD
+
+// GLOBAL VARIABLES ----------------------------------------------------------|
+char display[3];
+uint8_t count=0;
+
+
+
+// FUNCTION DECLARATIONS -----------------------------------------------------|
+
+void main(void); //COMPULSORY
+void init_LEDs(void); //COMPULSORY
+void display_on_LEDs(uint8_t number); //COMPULSORY
+void display_on_LCD (uint8_t disp);
+void init_switches (void);
+
+
+// MAIN FUNCTION -------------------------------------------------------------|
+
+void main(void)
+{
+
+
+while(1)
+{
+init_LEDs();
+init_switches ();
+
+display_on_LCD(count);
+
+if ((GPIOA->IDR & GPIO_IDR_1)==0)
+{
+count=count+1;
+lcd_command(CLEAR); /* clear LCD */
+display_on_LEDs(count);
+display_on_LCD(count);
+init_switches();}
+
+else if ((GPIOA->IDR & GPIO_IDR_2)==0)
+{
+count=count-1;
+lcd_command(CLEAR); /* clear LCD */
+display_on_LEDs(count);
+display_on_LCD(count);
+init_switches();}
+}
+}
+
+// OTHER FUNCTIONS -----------------------------------------------------------|
+
+/* Description:
+* This function initialises the GPIO to display output data
+*/
+void init_LEDs(void) //COMPULSORY
+{ //COMPULSORY
+#ifdef UCT_BOARD //COMPULSORY
+*(uint32_t *)0x40021014 |= 0x00040000; //COMPULSORY
+*(uint32_t *)0x48000400 |= 0x00005555; //COMPULSORY
+#else //COMPULSORY
+*(uint32_t *)0x40021014 |= 0x000C0000; //COMPULSORY
+*(uint32_t *)0x48000800 |= 0x00050000; //COMPULSORY
+#endif //COMPULSORY
+} //COMPULSORY
+
+/* Description:
+* This function takes in a 8 bit positive number and displays it on the LEDs
+*/
+void display_on_LEDs(uint8_t number) //COMPULSORY
+{ //COMPULSORY
+#ifdef UCT_BOARD //COMPULSORY
+*(uint8_t *)0x48000414 = number; //COMPULSORY
+#else //COMPULSORY
+*(uint8_t *)0x48000814 = number << 8; //COMPULSORY
+#endif //COMPULSORY
+} //COMPULSORY
+
+/* Description:
+* This function displays an 8 bit integer onto the LCD
+*/
+void display_on_LCD(uint8_t disp)
+{
+init_LCD();
+sprintf(display,"%d", disp);
+lcd_command(CLEAR); /* clear LCD */
+lcd_putstring(display);
+
+}
+
+/* Description:
+* This function initialises SW1 and SW2
+*/
+void init_switches(void)
+{ RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // Enable clock for buttons
+GPIOA->MODER &= ~GPIO_MODER_MODER1;
+GPIOA->MODER &= ~GPIO_MODER_MODER2;
+
+GPIOA->PUPDR |= GPIO_PUPDR_PUPDR1_0; // Switch on pull up resistors
+GPIOA->PUPDR |= GPIO_PUPDR_PUPDR2_0;}
